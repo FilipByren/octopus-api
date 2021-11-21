@@ -1,0 +1,37 @@
+version: "3.8"
+networks:
+  docker_vpc:
+    external: false
+    name: docker_vpc
+
+services:
+  server:
+    image: server
+    tty: true
+    stdin_open: true
+    networks:
+      - docker_vpc
+    build:
+      context: server/.
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    environment:
+      PYTHONDONTWRITEBYTECODE: 1
+
+  test:
+    image: test
+    tty: true
+    stdin_open: true
+    networks:
+      - docker_vpc
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - server
+    environment:
+      PYTHONDONTWRITEBYTECODE: 1
+    volumes:
+      - .:/usr/src/app
+

@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "octopus-api"
+version = "0.1.5"
+homepage = "https://github.com/FilipByren/octopus-api"
+repository = "https://github.com/FilipByren/octopus-api"
+readme = "README.md"
+keywords = ["rate limiting", "concurrent api", "python"]
+description = "Octopus-api is a python library for performing optimized concurrent requests and API limits set by the endpoint contract. The goal with octopus is to provide the limitations and then use the standard requests library to perform the calls. The tentacles of the octopus are then used to call the endpoint and provide the responses efficiently."
+authors = ["Filip Byrén <filip.j.byren@gmail.com>"]
+license = "GNU GENERAL PUBLIC LICENSE"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+asyncio = "^3.4.3"
+aiohttp = "^3.8.1"
+more-itertools = "^8.11.0"
+tqdm = "^4.62.3"
+
+[tool.poetry.dev-dependencies]
+fastapi = "^0.70.0"
+uvicorn = "^0.15.0"
+requests = "^2.26.0"
+slowapi = "^0.1.5"
+
+# New scripts
+[tool.poetry.scripts]
+octopus = 'octopus:octopus'
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
