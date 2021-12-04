@@ -13,21 +13,18 @@ class OctopusApiTest(TestCase):
                 body = await response.json()
                 return body
 
-        # Optimized based on rate limiting
-        client = OctopusApi(rate=50, resolution="minute")
+        client = OctopusApi(rate=60, resolution="minute")
         result: List = client.execute(requests_list=[{
             "url": "http://server:3000/",
-            "params": {}}] * 10, func=get_response)
+            "params": {}}] * 60, func=get_response)
 
-        assert result == [{"msg": "Hello World"}] * 10
+        assert result == [{"msg": "Hello World"}] * 60
 
     def test_2_above_rate_limit(self):
         async def get_response(session: TentacleSession, request: Dict):
             async with session.get(url=request["url"], params=request["params"]) as response:
                 text = await response.text()
                 return text
-
-            # Optimized based on rate limiting
 
         client = OctopusApi(rate=200, resolution="minute")
         try:

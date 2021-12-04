@@ -1,3 +1,4 @@
-.idea/*
+.idea/
 poetry.lock
 __pycache__/
+dist/
