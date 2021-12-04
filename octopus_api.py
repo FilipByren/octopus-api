@@ -8,6 +8,17 @@ from tqdm import tqdm
 
 
 class TentacleSession(aiohttp.ClientSession):
+    """ TentacleSession is a wrapper around the aiohttp.ClientSession, where it introduces the retry and rate functionality
+     missing in the default aiohttp.ClientSession.
+
+        Args:
+            sleep (float): The time the client will sleep after each request. \n
+      	    retries (int): The number of retries for a successful request. \n
+     	    retry_sleep (float): The time service sleeps between nonsuccessful request calls. Defaults to 1.0.
+
+        Returns:
+            TentacleSession(aiohttp.ClientSession)
+    """
     sleep: float
     retries: int
     retry_sleep: float = 1.0
@@ -53,6 +64,16 @@ class TentacleSession(aiohttp.ClientSession):
 
 
 class OctopusApi:
+    """ Initiates the Octopus client.
+        Args:
+            rate (Optional[float]): The rate limits of the endpoint; default to no limit. \n
+ 	        resolution (Optional[str]): The time resolution of the rate (sec, minute), defaults to None.
+	        concurrency (int): Maximum concurrency on the given endpoint, defaults to 30; if rate is provided,
+	        then concurrency will be set to 1.
+
+        Returns:
+            OctopusApi
+    """
     rate_sec: float = None
     concurrency: int
     retries: int
@@ -71,6 +92,22 @@ class OctopusApi:
         self.retries = retries
 
     def execute(self, requests_list: List[Dict[str, Any]], func: callable) -> List[Any]:
+        """ Execute the requests given the functions instruction.
+
+            Empower asyncio libraries for performing parallel executions of the user-defined function.
+            Given a list of requests, the result is an out of order list of what the user-defined function returns.
+
+            Args:
+                requests_list (List[Dict[str, Any]): The list of requests in a dictionary format, e.g.
+                [{"url": "http://example.com", "params": {...}, "body": {...}}..]
+                func (callable): The user-defined function to execute, this function takes in the following arguments.
+                    Args:
+                        session (TentacleSession): The Octopus wrapper around the aiohttp.ClientSession.
+                        request (Dict): The request within the requests_list above.
+
+            Returns:
+                List(func->return)
+        """
 
         async def __tentacles__(rate: float, retries: int, concurrency: int, requests_list: List[Dict[str, Any]],
                                 func: callable) -> List[Any]:

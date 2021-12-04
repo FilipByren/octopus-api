@@ -2,7 +2,7 @@
 test:
 	docker-compose -f docker-compose.yaml run --rm test
 
-# TAG=0.1.1 make release
+# TAG=x.y.z make release
 .PHONY: release
 release:
 	poetry version $(TAG) && \
