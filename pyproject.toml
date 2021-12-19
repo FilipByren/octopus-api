@@ -5,7 +5,7 @@ homepage = "https://github.com/FilipByren/octopus-api"
 repository = "https://github.com/FilipByren/octopus-api"
 readme = "README.md"
 keywords = ["rate limiting", "concurrent api", "python", "https://docs.aiohttp.org"]
-description = "Octopus-api is a python library for performing client-based optimized concurrent requests and limit rates set by the endpoint contract. Octopus-api is simple; it combines the asyncio and aiohttp library's functionality and makes sure the requests follow the constraints set by the user."
+description = "Octopus-api is a python library for performing client-based optimized concurrent requests and limit rates set by the endpoint contract."
 authors = ["Filip Byrén <filip.j.byren@gmail.com>"]
 license = "GNU GENERAL PUBLIC LICENSE"
 
@@ -17,10 +17,6 @@ more-itertools = "^8.11.0"
 tqdm = "^4.62.3"
 
 [tool.poetry.dev-dependencies]
-fastapi = "^0.70.0"
-uvicorn = "^0.15.0"
-requests = "^2.26.0"
-slowapi = "^0.1.5"
 
 # New scripts
 [tool.poetry.scripts]
