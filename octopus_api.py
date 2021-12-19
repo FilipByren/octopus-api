@@ -122,7 +122,8 @@ class OctopusApi:
         batches = chunked(requests_list, self.concurrency)
         results = list()
         for batch in tqdm(list(batches)):
-            r = asyncio.run(__tentacles__(self.rate_sec, self.retries, self.concurrency, batch, func))
-            results.extend(r)
+            result = asyncio.run(__tentacles__(self.rate_sec, self.retries, self.concurrency, batch, func))
+            if result:
+                results.extend(result)
 
         return results
