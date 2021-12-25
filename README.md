@@ -91,5 +91,3 @@ if __name__ == '__main__':
 
 ## Limitations
 1. Returned result from the user defined function comes in out of order.
-2. When setting rate-limiting, the api will not utilize the concurrency functionality and only run a single 
-operation in sequence.
