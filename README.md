@@ -88,6 +88,24 @@ if __name__ == '__main__':
     print(result)
 
 ```
+Optimize the request based on rate limit and concurrency limit:
+```python
+from octopus_api import TentacleSession, OctopusApi
+from typing import Dict, List
+
+if __name__ == '__main__':
+    async def get_ethereum(session: TentacleSession, request: Dict):
+        async with session.get(url=request["url"], params=request["params"]) as response:
+            body = await response.json()
+            return body
+
+    client = OctopusApi(rate=50, resolution="sec", concurrency=6)
+    result: List = client.execute(requests_list=[{
+        "url": "https://api.pro.coinbase.com/products/ETH-EUR/candles?granularity=900&start=2021-12-04T00:00:00Z&end=2021-12-04T00:00:00Z",
+        "params": {}}] * 1000, func=get_ethereum)
+    print(result)
+```
+
 
 ## Limitations
 1. Returned result from the user defined function comes in out of order.
