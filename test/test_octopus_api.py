@@ -13,11 +13,10 @@ class OctopusApiTest(TestCase):
                 body = await response.json()
                 return body
 
-        client = OctopusApi(rate=60, resolution="minute")
+        client = OctopusApi(rate=59, resolution="minute", concurrency=10)
         result: List = client.execute(requests_list=[{
             "url": "http://server:3000/",
             "params": {}}] * 60, func=get_response)
-
         assert result == [{"msg": "Hello World"}] * 60
 
     def test_2_above_rate_limit(self):
@@ -26,7 +25,7 @@ class OctopusApiTest(TestCase):
                 text = await response.text()
                 return text
 
-        client = OctopusApi(rate=200, resolution="minute")
+        client = OctopusApi(rate=100, concurrency=50, resolution="sec")
         try:
             _: List = client.execute(requests_list=[{
                 "url": "http://server:3000/",

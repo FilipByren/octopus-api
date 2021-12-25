@@ -3,7 +3,6 @@ import time
 from typing import List, Dict, Any
 
 import aiohttp
-from more_itertools import chunked
 from tqdm import tqdm
 
 
@@ -19,13 +18,11 @@ class TentacleSession(aiohttp.ClientSession):
         Returns:
             TentacleSession(aiohttp.ClientSession)
     """
-    sleep: float
     retries: int
     retry_sleep: float = 1.0
 
-    def __init__(self, sleep: float, retries=3, retry_sleep=1.0, **kwargs):
+    def __init__(self, retries=3, retry_sleep=1.0, **kwargs):
         self.retries = retries
-        self.sleep = sleep
         self.retry_sleep = retry_sleep
         super().__init__(raise_for_status=True, **kwargs)
 
@@ -34,12 +31,7 @@ class TentacleSession(aiohttp.ClientSession):
         error = Exception()
         while attempts < self.retries:
             try:
-                start_time = time.time()
-                resp = func(**kwargs)
-                response_time = round(time.time() - start_time, 1)
-                if response_time < self.sleep:
-                    time.sleep(self.sleep - response_time)
-                return resp
+                return func(**kwargs)
             except Exception as error:
                 attempts += 1
                 error = error
@@ -68,8 +60,7 @@ class OctopusApi:
         Args:
             rate (Optional[float]): The rate limits of the endpoint; default to no limit. \n
  	        resolution (Optional[str]): The time resolution of the rate (sec, minute), defaults to None.
-	        concurrency (int): Maximum concurrency on the given endpoint, defaults to 30; if rate is provided,
-	        then concurrency will be set to 1.
+	        concurrency (int): Maximum concurrency on the given endpoint, defaults to 30.
 
         Returns:
             OctopusApi
@@ -78,7 +69,7 @@ class OctopusApi:
     concurrency: int
     retries: int
 
-    def __init__(self, rate: int = None, resolution: str = None, concurrency: int = 30,
+    def __init__(self, rate: int = None, resolution: str = None, concurrency: int = 5,
                  retries: int = 3):
 
         if rate or resolution:
@@ -88,7 +79,7 @@ class OctopusApi:
                 raise ValueError("Can not set resolution of rate without rate")
             self.rate_sec = rate / (60 if resolution.lower() == "minute" else 1)
 
-        self.concurrency = concurrency if not rate else 1
+        self.concurrency = concurrency
         self.retries = retries
 
     def execute(self, requests_list: List[Dict[str, Any]], func: callable) -> List[Any]:
@@ -111,19 +102,30 @@ class OctopusApi:
 
         async def __tentacles__(rate: float, retries: int, concurrency: int, requests_list: List[Dict[str, Any]],
                                 func: callable) -> List[Any]:
-            sleep: float = 0
-            if rate:
-                sleep = round(1 / rate, 2)
+
+            responses: list = []
+            progress_bar = tqdm(total=len(requests_list))
+            sleep = 1 / rate if rate else 0
+
+            async def func_mod(session: TentacleSession, request: Dict):
+                resp = await func(session, request)
+                responses.append(resp)
+                progress_bar.update()
+
             conn = aiohttp.TCPConnector(limit_per_host=concurrency)
-            async with TentacleSession(sleep=sleep, retries=retries, connector=conn) as session:
-                return await asyncio.gather(
-                    *[func(session, request) for request in requests_list])
+            async with TentacleSession(retries=retries, connector=conn) as session:
 
-        batches = chunked(requests_list, self.concurrency)
-        results = list()
-        for batch in tqdm(list(batches)):
-            result = asyncio.run(__tentacles__(self.rate_sec, self.retries, self.concurrency, batch, func))
-            if result:
-                results.extend(result)
+                tasks = set()
+                for request in requests_list:
+                    if len(tasks) >= self.concurrency:
+                        _done, tasks = await asyncio.wait(
+                            tasks, return_when=asyncio.FIRST_COMPLETED)
+                    tasks.add(asyncio.create_task(func_mod(session, request)))
+                    await asyncio.sleep(sleep)
+                await asyncio.wait(tasks)
+                return responses
 
-        return results
+        result = asyncio.run(__tentacles__(self.rate_sec, self.retries, self.concurrency, requests_list, func))
+        if result:
+            return result
+        return []
