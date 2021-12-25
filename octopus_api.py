@@ -60,8 +60,7 @@ class OctopusApi:
         Args:
             rate (Optional[float]): The rate limits of the endpoint; default to no limit. \n
  	        resolution (Optional[str]): The time resolution of the rate (sec, minute), defaults to None.
-	        concurrency (int): Maximum concurrency on the given endpoint, defaults to 30; if rate is provided,
-	        then concurrency will be set to 1.
+	        concurrency (int): Maximum concurrency on the given endpoint, defaults to 30.
 
         Returns:
             OctopusApi
