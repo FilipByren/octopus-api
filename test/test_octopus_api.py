@@ -13,7 +13,7 @@ class OctopusApiTest(TestCase):
                 body = await response.json()
                 return body
 
-        client = OctopusApi(rate=59, resolution="minute", concurrency=10)
+        client = OctopusApi(rate=59, resolution="minute", connections=10)
         result: List = client.execute(requests_list=[{
             "url": "http://server:3000/",
             "params": {}}] * 60, func=get_response)
@@ -25,7 +25,7 @@ class OctopusApiTest(TestCase):
                 text = await response.text()
                 return text
 
-        client = OctopusApi(rate=100, concurrency=50, resolution="sec")
+        client = OctopusApi(rate=100, connections=50, resolution="sec")
         try:
             _: List = client.execute(requests_list=[{
                 "url": "http://server:3000/",

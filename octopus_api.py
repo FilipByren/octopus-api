@@ -60,16 +60,16 @@ class OctopusApi:
         Args:
             rate (Optional[float]): The rate limits of the endpoint; default to no limit. \n
  	        resolution (Optional[str]): The time resolution of the rate (sec, minute), defaults to None.
-	        concurrency (int): Maximum concurrency on the given endpoint, defaults to 30.
+	        connections (Optional[int]): Maximum connections on the given endpoint, defaults to 5.
 
         Returns:
             OctopusApi
     """
     rate_sec: float = None
-    concurrency: int
+    connections: int
     retries: int
 
-    def __init__(self, rate: int = None, resolution: str = None, concurrency: int = 5,
+    def __init__(self, rate: int = None, resolution: str = None, connections: int = 5,
                  retries: int = 3):
 
         if rate or resolution:
@@ -79,14 +79,14 @@ class OctopusApi:
                 raise ValueError("Can not set resolution of rate without rate")
             self.rate_sec = rate / (60 if resolution.lower() == "minute" else 1)
 
-        self.concurrency = concurrency
+        self.connections = connections
         self.retries = retries
 
     def execute(self, requests_list: List[Dict[str, Any]], func: callable) -> List[Any]:
         """ Execute the requests given the functions instruction.
 
             Empower asyncio libraries for performing parallel executions of the user-defined function.
-            Given a list of requests, the result is an out of order list of what the user-defined function returns.
+            Given a list of requests, the result is ordered list of what the user-defined function returns.
 
             Args:
                 requests_list (List[Dict[str, Any]): The list of requests in a dictionary format, e.g.
@@ -100,32 +100,37 @@ class OctopusApi:
                 List(func->return)
         """
 
-        async def __tentacles__(rate: float, retries: int, concurrency: int, requests_list: List[Dict[str, Any]],
+        async def __tentacles__(rate: float, retries: int, connections: int, requests_list: List[Dict[str, Any]],
                                 func: callable) -> List[Any]:
 
-            responses: list = []
+            responses_order: Dict = {}
             progress_bar = tqdm(total=len(requests_list))
             sleep = 1 / rate if rate else 0
 
-            async def func_mod(session: TentacleSession, request: Dict):
+            async def func_mod(session: TentacleSession, request: Dict, itr: int):
                 resp = await func(session, request)
-                responses.append(resp)
+                responses_order[itr] = resp
                 progress_bar.update()
 
-            conn = aiohttp.TCPConnector(limit_per_host=concurrency)
-            async with TentacleSession(retries=retries, connector=conn) as session:
+            conn = aiohttp.TCPConnector(limit_per_host=connections)
+            async with TentacleSession(retries=retries,
+                                       retry_sleep=sleep * self.connections * 2.0 if rate else 1.0,
+                                       connector=conn) as session:
 
                 tasks = set()
+                itr = 0
                 for request in requests_list:
-                    if len(tasks) >= self.concurrency:
+                    if len(tasks) >= self.connections:
                         _done, tasks = await asyncio.wait(
                             tasks, return_when=asyncio.FIRST_COMPLETED)
-                    tasks.add(asyncio.create_task(func_mod(session, request)))
+                    tasks.add(asyncio.create_task(func_mod(session, request, itr)))
                     await asyncio.sleep(sleep)
+                    itr += 1
                 await asyncio.wait(tasks)
-                return responses
+                return [value for (key, value) in sorted(responses_order.items())]
 
-        result = asyncio.run(__tentacles__(self.rate_sec, self.retries, self.concurrency, requests_list, func))
+        result = asyncio.run(
+            __tentacles__(self.rate_sec, self.retries, self.connections, requests_list, func))
         if result:
             return result
         return []

@@ -1,7 +1,7 @@
 # octopus-api
 ![octopus_icon](https://github.com/FilipByren/octopus-api/blob/main/image.png?raw=true)
 ## About
-Octopus-api is a python library for performing client-based optimized concurrent requests and limit rates set by the endpoint contract.
+Octopus-api is a python library for performing client-based optimized connections requests and limit rates set by the endpoint contract.
 
 Octopus-api is simple; it combines the [asyncio](https://docs.python.org/3/library/asyncio.html) and [aiohttp](https://docs.aiohttp.org/en/stable/) library's functionality and makes sure the requests follows the constraints set by the contract.
 
@@ -17,7 +17,7 @@ To start Octopus, you first initiate the client, setting your constraints.
 ```python
 client = OctopusApi(rate=30, resolution="minute", retries=10)
 client = OctopusApi(rate=5, resolution="sec", retries=3)
-client = OctopusApi(concurrency=100, retries=5)
+client = OctopusApi(connections=100, retries=5)
 ```
 After that, you will specify what you want to perform on the endpoint response. This is done within a user-defined function.
 ```python
@@ -29,9 +29,11 @@ async def patch_data(session: TentacleSession, request: Dict):
 
 As Octopus `TentacleSession` uses [aiohttp](https://docs.aiohttp.org/en/stable/) under the hood, the resulting  way to write 
 **POST**, **GET**, **PUT** and **PATCH** for aiohttp will be the same for octopus. The only difference is the added functionality of 
-retries and rate limits (if set).
+retries and optional rate limit.
 
-Finally, you finish everything up with the `execute` call for the octopus client, where you provide the list of requests dicts your defined and the user function. The execute call will then return the waited list of returned values.
+Finally, you finish everything up with the `execute` call for the octopus client, where you provide the list of requests dicts and the user function.
+The execute call will then return a list of the return values defined in user function. As the requests list is a bounded stream we return the result in order.
+
 
 ```python
 result: List = client.execute(requests_list=[
@@ -51,7 +53,7 @@ result: List = client.execute(requests_list=[
 
 ### Examples
 
-Optimize the request based concurrency constraints:
+Optimize the request based on max connections constraints:
 ```python
 from octopus_api import TentacleSession, OctopusApi
 from typing import Dict, List
@@ -63,7 +65,7 @@ if __name__ == '__main__':
             return body
 
 
-    client = OctopusApi(concurrency=100)
+    client = OctopusApi(connections=100)
     result: List = client.execute(requests_list=[{
         "url": "http://google.com",
         "params": {}}] * 100, func=get_text)
@@ -88,7 +90,7 @@ if __name__ == '__main__':
     print(result)
 
 ```
-Optimize the request based on rate limit and concurrency limit:
+Optimize the request based on rate limit and connections limit:
 ```python
 from octopus_api import TentacleSession, OctopusApi
 from typing import Dict, List
@@ -99,13 +101,9 @@ if __name__ == '__main__':
             body = await response.json()
             return body
 
-    client = OctopusApi(rate=50, resolution="sec", concurrency=6)
+    client = OctopusApi(rate=50, resolution="sec", connections=6)
     result: List = client.execute(requests_list=[{
         "url": "https://api.pro.coinbase.com/products/ETH-EUR/candles?granularity=900&start=2021-12-04T00:00:00Z&end=2021-12-04T00:00:00Z",
         "params": {}}] * 1000, func=get_ethereum)
     print(result)
 ```
-
-
-## Limitations
-1. Returned result from the user defined function comes in out of order.
