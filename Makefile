@@ -1,3 +1,7 @@
+.PHONY: hard-wipe
+hard-wipe:
+	docker system prune -a
+
 .PHONY: test
 test:
 	docker-compose -f docker-compose.yaml run --rm test

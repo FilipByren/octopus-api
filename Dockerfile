@@ -18,7 +18,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /usr/src/app
 RUN pip install --upgrade pip
-RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+RUN pip install poetry
 
 COPY pyproject.toml /usr/src/app/
 RUN poetry install --no-dev
