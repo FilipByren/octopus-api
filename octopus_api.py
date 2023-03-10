@@ -82,23 +82,7 @@ class OctopusApi:
         self.connections = connections
         self.retries = retries
 
-    def execute(self, requests_list: List[Dict[str, Any]], func: callable) -> List[Any]:
-        """ Execute the requests given the functions instruction.
-
-            Empower asyncio libraries for performing parallel executions of the user-defined function.
-            Given a list of requests, the result is ordered list of what the user-defined function returns.
-
-            Args:
-                requests_list (List[Dict[str, Any]): The list of requests in a dictionary format, e.g.
-                [{"url": "http://example.com", "params": {...}, "body": {...}}..]
-                func (callable): The user-defined function to execute, this function takes in the following arguments.
-                    Args:
-                        session (TentacleSession): The Octopus wrapper around the aiohttp.ClientSession.
-                        request (Dict): The request within the requests_list above.
-
-            Returns:
-                List(func->return)
-        """
+    def get_coroutine(self, requests_list: List[Dict[str, Any]], func: callable):
 
         async def __tentacles__(rate: float, retries: int, connections: int, requests_list: List[Dict[str, Any]],
                                 func: callable) -> List[Any]:
@@ -129,8 +113,27 @@ class OctopusApi:
                 await asyncio.wait(tasks)
                 return [value for (key, value) in sorted(responses_order.items())]
 
-        result = asyncio.run(
-            __tentacles__(self.rate_sec, self.retries, self.connections, requests_list, func))
+        return __tentacles__(self.rate_sec, self.retries, self.connections, requests_list, func)
+
+    def execute(self, requests_list: List[Dict[str, Any]], func: callable) -> List[Any]:
+        """ Execute the requests given the functions instruction.
+
+            Empower asyncio libraries for performing parallel executions of the user-defined function.
+            Given a list of requests, the result is ordered list of what the user-defined function returns.
+
+            Args:
+                requests_list (List[Dict[str, Any]): The list of requests in a dictionary format, e.g.
+                [{"url": "http://example.com", "params": {...}, "body": {...}}..]
+                func (callable): The user-defined function to execute, this function takes in the following arguments.
+                    Args:
+                        session (TentacleSession): The Octopus wrapper around the aiohttp.ClientSession.
+                        request (Dict): The request within the requests_list above.
+
+            Returns:
+                List(func->return)
+        """
+
+        result = asyncio.run(self.get_coroutine(requests_list, func))
         if result:
             return result
         return []
