@@ -107,3 +107,4 @@ if __name__ == '__main__':
         "params": {}}] * 1000, func=get_ethereum)
     print(result)
 ```
+
